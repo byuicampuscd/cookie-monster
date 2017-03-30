@@ -2,10 +2,27 @@ module.exports = (function () {
     const fs = require("fs");
     var CookieMonster = function () {};
     var proto = CookieMonster.prototype;
-    /*
-        UserInfo: {username:{value:val,selector: sel}, password:{value:val,selector: sel}}
-        Links: {success:link, failure:link, login: link}}
-        Takes the user and link data and retrieves an authentication data.
+    /**
+      * Gets an authentication cookie from the specified parameters.
+      * @param {Object } userInfo - The users login credentials:
+        {
+            username:{
+                value:val,
+                selector: sel
+            }, password:{
+                value:val,
+                selector: sel
+            },
+            submit: sel
+            }
+        * @param {Object} links = Links for login:
+        {
+            success:link, 
+            failure:link, 
+            login: link
+    
+        }
+        
     */
     proto.getAuthenticationCookie = function (userInfo, links, callback, debug) {
         function extractCookie(nightmare, done) {
@@ -66,9 +83,10 @@ module.exports = (function () {
             });
     }
     
-    /*
-     * Prompts for the user data.
-     * When exisitng data is provided it will not prompt for it.
+    /**
+     * Prompts for the user data. When an exisitng data object is provided it will not prompt for it.
+     * @param {Function} callback - Function to run once the user data has been retrieved. It passes the userInfo object as the first parameter;
+     * @param {Object} existingData (optional) - an existing userData object  
      */
     proto.promptUserInfo = function (callback, existingData) {
         const prompt = require("prompt");
@@ -120,9 +138,10 @@ module.exports = (function () {
         });
     }
 
-    /*
-     * Prompts for the links data.
-     * When exisitng data is provided it will not prompt for it.
+    /**
+     * Prompts for the links data. When exisitng data is provided it will not prompt for it.
+     * @param {Function} callback - Function to run once the links have been retrieved. It passes the links object as the first parameter;
+     * @param {Object} existingData (optional) - an existing links object 
      */
     proto.promptLinkInfo = function (callback, existingData) {
         const prompt = require("prompt");
@@ -161,7 +180,12 @@ module.exports = (function () {
         });
     }
 
-    //parses a multi-level key
+    /**
+      * Parses a multi-level key
+      * @param {String} multiLevelKey - a deep reference of an object. Ex: ("object.sub.item")
+      * @param {Object} object - the object to extract the deep refence value.
+      * @returns {Object} - the value from the deep reference.
+      */
     function getValueFromKey(multilevelKey, object){
         var levels = multilevelKey.split(".");
         var newObj = object
@@ -171,7 +195,13 @@ module.exports = (function () {
         return newObj;
     }
     
-    // finds missing keys within  an object
+    /** 
+      * Finds missing keys within  an object
+      * @param {Object} object - The object to check
+      * @param {Object} framework - The reference object,
+      * @param {Object[]} missing - array of missing keys
+      * @param {String} parent - the higher object level
+      */
     function matchProcess(object, framework, missing = [], parent = "") {
         // console.log("Iterate: ",missing)
         var found = true;
@@ -187,7 +217,12 @@ module.exports = (function () {
         }
         return missing;
     }
-    //finds checks if a key is within the layers of an object
+    /**
+      * Checks if a key is within the layers of an object
+      * @param {Object} item - item to find
+      * @param {Object} object - object to find the item in
+      * @param {boolean} found - was the item found in the object
+      */
     function findInObjet(item, object) {
         var found = false;
         for (var i in object) {
@@ -203,8 +238,9 @@ module.exports = (function () {
         }
         return found;
     }
-    /*
+    /**
      * Grabs a copy of the authentication framework
+     * @returns {Object} - the authentication framework.
      */
     proto.getFramework = function () {
         var framework = {
@@ -216,7 +252,8 @@ module.exports = (function () {
                 password: {
                     value: "",
                     selector: ""
-                }
+                },
+                submit:""
             },
             links: {
                 login: "",
@@ -227,8 +264,9 @@ module.exports = (function () {
         return framework;
     }
 
-    /*
+    /**
      * Saves template json file
+     * @param {String} file - the path to save the framework.
      */
     proto.saveFrameworkTemplate = function (file) {
         const fs = require('fs');
@@ -241,10 +279,10 @@ module.exports = (function () {
             console.log(JSON.stringify(this.getFramework()));
     }
 
-    /*
-     * Reads a json file and finds the data needed for authentication.
-     * If it finds missing authentication data, it will throw an array
-     * of the missing authentication data parameters.
+    /**
+     * Reads a json file and finds the data needed for authentication. If it finds missing authentication data, it will throw an array of the missing authentication data parameters.
+     * @param {String} file - Path to authentication file.
+     * @param {Function} callback - Function to call once the object has been read. It will pass the keys of missing objects as the first parameter and the authentication object as the second parameter.
      */
     proto.getAuthFromJSONFile = function (file, callback) {
         var that = this;
@@ -264,8 +302,11 @@ module.exports = (function () {
             callback(null, jsonData);
         });
     }
-    /*
+    /**
      * Merges two related objects together
+     * @param {Object} templateObject - the object to modify 
+     * @param {Object} fillerObject - the object with filler values
+     * @returns {Object} - the filled template object
      */
     function fillGaps(templateObject, fillerObject){
         if(!templateObject)
@@ -283,7 +324,11 @@ module.exports = (function () {
         
         return templateObject;
     }
-
+    /**
+     * Goes through an authentication file and prompts for the missing values.
+     * @param {String} file - the path to the authentication file. 
+     * @param {Function} callback - the function to run when the data has been filled. IT passes the authentication object as the first parameter.
+     */
     proto.promptMissingFromFile = function(file, callback){
         var that = this;
         
@@ -348,7 +393,9 @@ module.exports = (function () {
             });
         });
     }
-    //kills nightmare process
+    /**
+      *kills nightmare process
+      */
     function endProcess(nightmare) {
         nightmare.end().then(function () {
 
@@ -358,18 +405,18 @@ module.exports = (function () {
     }
     return CookieMonster;
 }());
-
-//var cookieMonster = new module.exports();
-////cookieMonster.saveFrameworkTemplate("./auth.json");
-//cookieMonster.promptMissingFromFile("./auth.json", function (err, authdata) {
-//    if (err) {
-//        if (err.length)
-//            err.forEach(function (item) {
-//                console.log(`ERR: JSON data is missing the parameter "${item}"`);
-//            });
-//        else
-//            console.log(err);
-//        return;
-//    }
-//    console.log(authdata);
-//});
+// LIBRARY TESTS
+/*var cookieMonster = new module.exports();
+//cookieMonster.saveFrameworkTemplate("./auth.json");
+cookieMonster.promptMissingFromFile("./auth.json", function (err, authdata) {
+    if (err) {
+        if (err.length)
+            err.forEach(function (item) {
+                console.log(`ERR: JSON data is missing the parameter "${item}"`);
+            });
+        else
+            console.log(err);
+        return;
+    }
+    console.log(authdata);
+});*/
