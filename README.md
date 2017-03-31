@@ -1,3 +1,7 @@
+##Install Cookie Monster
+```
+npm i -g git+https://github.com/byuicampuscd/nightmare-helpers.git
+```
 ## Cookie Extraction Example
 ```javascript
 var cookieMonster = require('cookiemonster');
