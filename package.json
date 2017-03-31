@@ -24,5 +24,8 @@
     "auth"
   ],
   "author": "Eric Julander (BYU-Idaho Technical Operations)",
-  "license": "MIT"
+  "license": "MIT",
+  "bin":{
+      "cmonster":"cookie-cmd.js"
+  }
 }

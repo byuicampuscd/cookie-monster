@@ -283,12 +283,13 @@ module.exports = (function () {
      * Saves template json file
      * @param {String} file - the path to save the framework.
      */
-    var saveFrameworkTemplate = function (file) {
+    var saveFrameworkTemplate = function (file, callback) {
         const fs = require('fs');
         if (file)
             fs.writeFile(file, JSON.stringify(this.getFramework()), function (err) {
                 if (err) throw err;
                 console.log("Framework Saved!");
+                callback();
             });
         else
             console.log(JSON.stringify(this.getFramework()));

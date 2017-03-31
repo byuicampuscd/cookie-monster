@@ -1,3 +1,68 @@
+## Cookie Extraction Example
+```javascript
+var cookieMonster = require('cookiemonster');
+
+//gets authenticatin data
+cookieMonster.promptMissingFromFile("./auth.json", function (err, authdata) {
+    //checks for missing fields
+    if (err) {
+        if (err.length)
+            err.forEach(function (item) {
+                console.log(`ERR: JSON data is missing the parameter "${item}"`);
+            });
+        else
+            console.log(err);
+        return;
+    }
+    //grabs cookie using authentication data 
+    cookieMonster.getAuthenticationCookie(authdata.userData, authdata.links, function(err,cookie){
+        if(err){
+            console.log(err);
+            return;
+        }
+        console.log(cookie);
+    }, true);
+    // do something with cookie
+    console.log(authdata);
+});
+```
+##Authentication Data Framework
+```javascript
+{
+    "userData": {
+        "username": {
+            "value": "",
+            "selector": ""
+        },
+        "password": {
+            "value": "",
+            "selector": ""
+        },
+        "submit": ""
+    },
+    "links": {
+        "login": "",
+        "success": "",
+        "failure": ""
+    }
+}
+```
+## CLI Usage
+Saving an autentication framework file.
+```
+cmonster (--save | -s) filename
+
+``` 
+To extract a cookie using the authentication file and save it to another file.
+```
+cmonster (--extract | -e) (--file | -f) ./auth.json (--save |-s) cookie.json
+
+```
+
+Append the dev flag to the end to enable development mode.
+```
+--dev
+```
 ## Functions
 
 <dl>
