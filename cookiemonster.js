@@ -1,13 +1,34 @@
+/** Boring Stuff */
+function test(){
+    
+}
 module.exports = (function () {
     const fs = require("fs");
     var CookieMonster = function () {};
     var proto = CookieMonster.prototype;
-    /*
-        UserInfo: {username:{value:val,selector: sel}, password:{value:val,selector: sel}}
-        Links: {success:link, failure:link, login: link}}
-        Takes the user and link data and retrieves an authentication data.
+    /**
+      * Gets an authentication cookie from the specified parameters.
+      * @param {Object } userInfo - The users login credentials:
+        {
+            username:{
+                value:val,
+                selector: sel
+            }, password:{
+                value:val,
+                selector: sel
+            },
+            submit: sel
+            }
+        * @param {Object} links = Links for login:
+        {
+            success:link, 
+            failure:link, 
+            login: link
+    
+        }
+        
     */
-    proto.getAuthenticationCookie = function (userInfo, links, callback, debug) {
+    var getAuthenticationCookie = function (userInfo, links, callback, debug) {
         function extractCookie(nightmare, done) {
             nightmare.cookies.get()
                 .then(function (cookie) {
@@ -45,7 +66,7 @@ module.exports = (function () {
             .click(userInfo.submit)
             .wait(1000)
             .wait(function (links) {
-                return window.location.href === links.failure || window.location.href === links.success;
+                return window.location.href.match(new RegExp(links.failure+"|"+links.success)).length > 0;
             }, links)
             .wait(1000)
             .evaluate(function () {
@@ -53,24 +74,27 @@ module.exports = (function () {
                 return current;
             })
             .then(function (url) {
-                if (url === links.failure) {
-                    callback("Failed to authenticate user :(", null);
+                if (url.match(new RegExp(links.failure,"gi"))) {
+                    console.log("I have failed :O(")
                     endProcess(nightmare);
+                    callback("Failed to authenticate user :(", null);
                     return;
                 }
                 extractCookie(nightmare, callback);
             })
             .catch(function (error) {
+                endProcess(nightmare);
                 callback("An error has occured :(", null);
-                nightmare.end();
             });
     }
+    proto.getAuthenticationCookie = getAuthenticationCookie;
     
-    /*
-     * Prompts for the user data.
-     * When exisitng data is provided it will not prompt for it.
+    /**
+     * Prompts for the user data. When an exisitng data object is provided it will not prompt for it.
+     * @param {Function} callback - Function to run once the user data has been retrieved. It passes the userInfo object as the first parameter;
+     * @param {Object} existingData (optional) - an existing userData object  
      */
-    proto.promptUserInfo = function (callback, existingData) {
+    var promptUserInfo = function (callback, existingData) {
         const prompt = require("prompt");
         var schema = {
             properties: {}
@@ -103,6 +127,12 @@ module.exports = (function () {
                 required: true
             }
         }
+        if (!existingData || existingData.indexOf("userData.submit") >= 0) {
+            schema.properties.submitSelector = {
+                description: "Enter Submit Button Selector",
+                required: true
+            }
+        }
         prompt.start();
         prompt.get(schema, function (err, result) {
             if (err) throw err;
@@ -114,17 +144,20 @@ module.exports = (function () {
                 password: {
                     value: result.password || "",
                     selector: result.passwordSelector || ""
-                }
+                },
+                submit: result.submitSelector || ""
             }
             callback(null, usrObj);
         });
     }
+    proto.promptUserInfo = promptUserInfo;
 
-    /*
-     * Prompts for the links data.
-     * When exisitng data is provided it will not prompt for it.
+    /**
+     * Prompts for the links data. When exisitng data is provided it will not prompt for it.
+     * @param {Function} callback - Function to run once the links have been retrieved. It passes the links object as the first parameter;
+     * @param {Object} existingData (optional) - an existing links object 
      */
-    proto.promptLinkInfo = function (callback, existingData) {
+    var promptLinkInfo = function (callback, existingData) {
         const prompt = require("prompt");
         var schema = {
             properties: {}
@@ -160,8 +193,14 @@ module.exports = (function () {
             callback(null, links);
         });
     }
+    proto.promptLinkInfo = promptLinkInfo;
 
-    //parses a multi-level key
+    /**
+      * Parses a multi-level key
+      * @param {String} multiLevelKey - a deep reference of an object. Ex: ("object.sub.item")
+      * @param {Object} object - the object to extract the deep refence value.
+      * @returns {Object} - the value from the deep reference.
+      */
     function getValueFromKey(multilevelKey, object){
         var levels = multilevelKey.split(".");
         var newObj = object
@@ -171,9 +210,14 @@ module.exports = (function () {
         return newObj;
     }
     
-    // finds missing keys within  an object
+    /** 
+      * Finds missing keys within  an object
+      * @param {Object} object - The object to check
+      * @param {Object} framework - The reference object,
+      * @param {Object[]} missing - array of missing keys
+      * @param {String} parent - the higher object level
+      */
     function matchProcess(object, framework, missing = [], parent = "") {
-        // console.log("Iterate: ",missing)
         var found = true;
         for (var i in framework) {
             var ofound = findInObjet(i, object);
@@ -187,7 +231,12 @@ module.exports = (function () {
         }
         return missing;
     }
-    //finds checks if a key is within the layers of an object
+    /**
+      * Checks if a key is within the layers of an object
+      * @param {Object} item - item to find
+      * @param {Object} object - object to find the item in
+      * @param {boolean} found - was the item found in the object
+      */
     function findInObjet(item, object) {
         var found = false;
         for (var i in object) {
@@ -203,10 +252,11 @@ module.exports = (function () {
         }
         return found;
     }
-    /*
+    /**
      * Grabs a copy of the authentication framework
+     * @returns {Object} - the authentication framework.
      */
-    proto.getFramework = function () {
+    var getFramework = function () {
         var framework = {
             userData: {
                 username: {
@@ -216,7 +266,8 @@ module.exports = (function () {
                 password: {
                     value: "",
                     selector: ""
-                }
+                },
+                submit:""
             },
             links: {
                 login: "",
@@ -226,27 +277,31 @@ module.exports = (function () {
         };
         return framework;
     }
+    proto.getFramework = getFramework;
 
-    /*
+    /**
      * Saves template json file
+     * @param {String} file - the path to save the framework.
      */
-    proto.saveFrameworkTemplate = function (file) {
+    var saveFrameworkTemplate = function (file, callback) {
         const fs = require('fs');
         if (file)
             fs.writeFile(file, JSON.stringify(this.getFramework()), function (err) {
                 if (err) throw err;
                 console.log("Framework Saved!");
+                callback();
             });
         else
             console.log(JSON.stringify(this.getFramework()));
     }
+    proto.saveFrameworkTemplate = saveFrameworkTemplate;
 
-    /*
-     * Reads a json file and finds the data needed for authentication.
-     * If it finds missing authentication data, it will throw an array
-     * of the missing authentication data parameters.
+    /**
+     * Reads a json file and finds the data needed for authentication. If it finds missing authentication data, it will throw an array of the missing authentication data parameters.
+     * @param {String} file - Path to authentication file.
+     * @param {Function} callback - Function to call once the object has been read. It will pass the keys of missing objects as the first parameter and the authentication object as the second parameter.
      */
-    proto.getAuthFromJSONFile = function (file, callback) {
+    var getAuthFromJSONFile = function (file, callback) {
         var that = this;
         fs.readFile(file, function (err, data) {
             if (err) {
@@ -264,8 +319,13 @@ module.exports = (function () {
             callback(null, jsonData);
         });
     }
-    /*
+    proto.getAuthFromJSONFile = getAuthFromJSONFile;
+    
+    /**
      * Merges two related objects together
+     * @param {Object} templateObject - the object to modify 
+     * @param {Object} fillerObject - the object with filler values
+     * @returns {Object} - the filled template object
      */
     function fillGaps(templateObject, fillerObject){
         if(!templateObject)
@@ -283,8 +343,13 @@ module.exports = (function () {
         
         return templateObject;
     }
-
-    proto.promptMissingFromFile = function(file, callback){
+    
+    /**
+     * Goes through an authentication file and prompts for the missing values.
+     * @param {String} file - the path to the authentication file. 
+     * @param {Function} callback - the function to run when the data has been filled. IT passes the authentication object as the first parameter.
+     */
+    var promptMissingFromFile = function(file, callback){
         var that = this;
         
         //finds missing parameters
@@ -323,9 +388,12 @@ module.exports = (function () {
                 }, userData);  
             }else if(links.length >= 0)
                 promptLinks();
-            //console.log(userData, links);
         }
-        // reads json file |START|
+        
+        /*********
+         * START *
+         *********/
+        // reads json file
         fs.readFile(file, function(err, data){
             if(err){
                 callback(err, null);
@@ -348,7 +416,10 @@ module.exports = (function () {
             });
         });
     }
-    //kills nightmare process
+    proto.promptMissingFromFile = promptMissingFromFile;
+    /**
+      *kills nightmare process
+      */
     function endProcess(nightmare) {
         nightmare.end().then(function () {
 
@@ -358,18 +429,25 @@ module.exports = (function () {
     }
     return CookieMonster;
 }());
-
-//var cookieMonster = new module.exports();
-////cookieMonster.saveFrameworkTemplate("./auth.json");
-//cookieMonster.promptMissingFromFile("./auth.json", function (err, authdata) {
-//    if (err) {
-//        if (err.length)
-//            err.forEach(function (item) {
-//                console.log(`ERR: JSON data is missing the parameter "${item}"`);
-//            });
-//        else
-//            console.log(err);
-//        return;
-//    }
+// LIBRARY TESTS
+/*var cookieMonster = new module.exports();
+//cookieMonster.saveFrameworkTemplate("./auth.json");
+cookieMonster.promptMissingFromFile("./auth.json", function (err, authdata) {
+    if (err) {
+        if (err.length)
+            err.forEach(function (item) {
+                console.log(`ERR: JSON data is missing the parameter "${item}"`);
+            });
+        else
+            console.log(err);
+        return;
+    }
+    cookieMonster.getAuthenticationCookie(authdata.userData, authdata.links, function(err,cookie){
+        if(err){
+            console.log(err);
+            return;
+        }
+        console.log(cookie);
+    }, true);
 //    console.log(authdata);
-//});
+});*/
