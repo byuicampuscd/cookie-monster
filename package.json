@@ -1,7 +1,7 @@
 {
   "name": "cookie-monster",
   "version": "1.0.0",
-  "description": "This is a moduel used to extract authentication cookies from a specified website",
+  "description": "This is a module used to extract authentication cookies from a specified website",
   "main": "cookiemonster.js",
   "dependencies": {
     "nightmare": "^2.10.0",
@@ -23,9 +23,9 @@
     "authentication",
     "auth"
   ],
-  "author": "Eric Julander (BYU-Idaho Technical Operations)",
-  "license": "MIT",
   "bin":{
       "cmonster":"cookie-cmd.js"
-  }
+  },
+  "author": "Eric Julander (BYU-Idaho Technical Operations)",
+  "license": "MIT"
 }
